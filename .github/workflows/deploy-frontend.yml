@@ -30,6 +30,21 @@ jobs:
       - name: Compilar
         run: npx ng build
 
+      - name: Validar configuración
+        env:
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+          CF_DIST_ID: ${{ vars.CF_DIST_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          faltan=0
+          [ -n "$S3_BUCKET" ]             || { echo "::error::Falta la variable S3_BUCKET (pestaña Variables)"; faltan=1; }
+          [ -n "$CF_DIST_ID" ]            || { echo "::error::Falta la variable CF_DIST_ID (pestaña Variables)"; faltan=1; }
+          [ -n "$AWS_ACCESS_KEY_ID" ]     || { echo "::error::Falta el secret AWS_ACCESS_KEY_ID (pestaña Secrets)"; faltan=1; }
+          [ -n "$AWS_SECRET_ACCESS_KEY" ] || { echo "::error::Falta el secret AWS_SECRET_ACCESS_KEY (pestaña Secrets)"; faltan=1; }
+          [ "$faltan" -eq 0 ] || exit 1
+          echo "Bucket: $S3_BUCKET | Distribución: $CF_DIST_ID | Credenciales: presentes"
+
       - name: Credenciales AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
