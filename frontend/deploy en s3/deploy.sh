@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 BUCKET=tareas-frontend-mario-2026
-DIST_ID=EXXXXXXXXXXXXX   # ID de tu distribución (pestaña General)
+DIST_ID=E16I8Q8JEB4NY9   # ID de tu distribución (pestaña General)
 
 ng build
 
