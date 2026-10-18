@@ -1,0 +1,1 @@
+ALTER TABLE tarea ADD CONSTRAINT uq_tarea_titulo UNIQUE (titulo);

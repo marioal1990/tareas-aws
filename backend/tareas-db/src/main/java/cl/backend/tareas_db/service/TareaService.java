@@ -1,6 +1,5 @@
 package cl.backend.tareas_db.service;
 
-import cl.backend.tareas_db.exception.BusinessRuleViolationException;
 import cl.backend.tareas_db.exception.DuplicateResourceException;
 import cl.backend.tareas_db.exception.ResourceNotFoundException;
 import cl.backend.tareas_db.model.dto.TareaDTO;
@@ -13,10 +12,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @Slf4j
@@ -43,7 +38,7 @@ public class TareaService {
     @Transactional(readOnly = true)
     public TareaDTO findById(Long id) {
         Tarea tarea = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("ID", id));
-        return new TareaDTO(tarea.getId(), tarea.getTitulo(), tarea.isCompletada(), tarea.getCreadaEn());
+        return ParseoUtil.parseoTareaDTO(tarea);
     }
 
     @Transactional
@@ -51,14 +46,15 @@ public class TareaService {
         if (this.repo.existsByTitulo(tareaDTO.titulo())) {
             throw new DuplicateResourceException("El titulo de la tarea ya existe");
         }
-        Tarea tarea = ParseoUtil.parseoTarea(tareaDTO);
-        tarea = this.repo.save(tarea);
-        TareaDTO tareaDTO1 = ParseoUtil.parseoTareaDTO(tarea);
-        return tareaDTO1;
+        Tarea tarea = this.repo.save(ParseoUtil.parseoTarea(tareaDTO));
+        return ParseoUtil.parseoTareaDTO(tarea);
     }
 
     @Transactional
     public void delete(Long id) {
+        if (this.repo.existsById(id)) {
+            throw new ResourceNotFoundException("Tarea", id);
+        }
         this.repo.deleteById(id);
     }
 }

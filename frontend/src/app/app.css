@@ -1,0 +1,10 @@
+.contenedor { max-width: 640px; margin: 2rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; }
+.nueva { display: flex; gap: .5rem; margin-bottom: 1rem; }
+.nueva input { flex: 1; padding: .5rem; }
+.lista { list-style: none; padding: 0; }
+.lista li { display: flex; align-items: center; gap: .75rem; padding: .5rem 0; border-bottom: 1px solid #ddd; }
+.lista li span { flex: 1; }
+.lista li small { color: #777; }
+.lista li.hecha span { text-decoration: line-through; color: #888; }
+.error { color: #b00020; }
+.paginacion { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1rem; }

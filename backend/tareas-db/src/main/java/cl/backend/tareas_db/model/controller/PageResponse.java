@@ -8,6 +8,7 @@ import java.util.List;
 public record PageResponse<T>(List<T> content, int page, int size, boolean hasNext) {
 
     public static <T> PageResponse<T> of(Slice<T> slice) {
-        return new PageResponse<>(slice.getContent(), slice.getNumber(), slice.getSize(), slice.hasNext());
+        // +1 porque la API usa páginas desde 1 (one-indexed-parameters=true)
+        return new PageResponse<>(slice.getContent(), slice.getNumber() + 1, slice.getSize(), slice.hasNext());
     }
 }
