@@ -13,6 +13,7 @@
   <ul class="lista">
     @for (t of tareas(); track t.id) {
       <li [class.hecha]="t.completada">
+        <input class="form-check-input" type="checkbox" [checked]="t.completada" (change)="alternar(t)" />
         <span>{{ t.titulo }}</span>
         <small>{{ t.creadaEn | date: 'dd-MM-yyyy HH:mm' }}</small>
         <button class="btn btn-danger btn-sm" (click)="borrar(t.id!)" aria-label="Eliminar">✕</button>

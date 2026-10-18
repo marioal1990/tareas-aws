@@ -51,6 +51,13 @@ public class TareaService {
     }
 
     @Transactional
+    public TareaDTO cambiarCompletada(Long id, boolean completada) {
+        Tarea tarea = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
+        tarea.setCompletada(completada);
+        return ParseoUtil.parseoTareaDTO(tarea);   // JPA guarda el cambio al cerrar la transacción
+    }
+
+    @Transactional
     public void delete(Long id) {
         if (this.repo.existsById(id)) {
             throw new ResourceNotFoundException("Tarea", id);

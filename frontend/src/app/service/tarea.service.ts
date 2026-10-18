@@ -22,6 +22,12 @@ export class TareaService {
       .pipe(map(r => r.data));
   }
 
+  cambiarCompletada(id: number, valor: boolean): Observable<Tarea> {
+    return this.http
+      .patch<ControllerResponse<Tarea>>(`${this.url}/${id}/completada`, null, { params: { valor } })
+      .pipe(map(r => r.data));
+  }
+
   borrar(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/${id}`);
   }

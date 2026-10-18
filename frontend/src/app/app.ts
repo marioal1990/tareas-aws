@@ -38,6 +38,13 @@ export class App implements OnInit {
     });
   }
 
+  alternar(t: Tarea) {
+    this.tareaService.cambiarCompletada(t.id!, !t.completada).subscribe({
+      next: () => this.cargar(),
+      error: e => this.mostrarError(e),
+    });
+  }
+
   borrar(id: number) {
     this.tareaService.borrar(id).subscribe({
       next: () => this.cargar(),
