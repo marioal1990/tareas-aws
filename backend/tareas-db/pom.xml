@@ -95,6 +95,18 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>3.0.3</version>  <!-- Boot 4. Usa la última 3.x de Maven Central -->
 		</dependency>
+		<!-- Driver JDBC de AWS: genera el token IAM en cada conexión -->
+		<dependency>
+			<groupId>software.amazon.jdbc</groupId>
+			<artifactId>aws-advanced-jdbc-wrapper</artifactId>
+			<version>3.1.0</version> <!-- verifica la última versión en Maven Central -->
+		</dependency>
+		<!-- Requerido por el plugin IAM para firmar el token -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>rds</artifactId>
+			<version>2.33.0</version> <!-- verifica la última 2.x en Maven Central -->
+		</dependency>
 	</dependencies>
 
 	<build>
