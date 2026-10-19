@@ -1,0 +1,126 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [master]
+    paths: ['backend/**', '.github/workflows/deploy-backend.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: backend/tareas-db
+
+jobs:
+  test:
+    name: Tests con PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17          # misma versión mayor que Aurora
+        env:
+          POSTGRES_DB: tareas
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app123
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app -d tareas"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: tareas
+      DB_USER: app
+      DB_PASSWORD: app123
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+          cache: maven
+
+      - name: Tests y empaquetado
+        working-directory: ${{ env.APP_DIR }}
+        run: ./mvnw -B verify
+
+      - name: Guardar JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: ${{ env.APP_DIR }}/target/tareas-db-*.jar
+          retention-days: 7
+
+  deploy:
+    name: Deploy a EC2
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar configuración
+        env:
+          BUCKET: ${{ vars.ARTIFACTS_BUCKET }}
+          INSTANCE: ${{ vars.EC2_INSTANCE_ID }}
+          CF: ${{ vars.CF_DOMAIN }}
+          KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          faltan=0
+          [ -n "$BUCKET" ]   || { echo "::error::Falta la variable ARTIFACTS_BUCKET"; faltan=1; }
+          [ -n "$INSTANCE" ] || { echo "::error::Falta la variable EC2_INSTANCE_ID"; faltan=1; }
+          [ -n "$CF" ]       || { echo "::error::Falta la variable CF_DOMAIN"; faltan=1; }
+          [ -n "$KEY_ID" ]   || { echo "::error::Falta el secret AWS_ACCESS_KEY_ID"; faltan=1; }
+          [ -n "$SECRET" ]   || { echo "::error::Falta el secret AWS_SECRET_ACCESS_KEY"; faltan=1; }
+          [ "$faltan" -eq 0 ] || exit 1
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: jar
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Subir JAR a S3
+        id: upload
+        run: |
+          KEY="backend/tareas-db-${GITHUB_SHA::7}.jar"
+          aws s3 cp jar/*.jar "s3://${{ vars.ARTIFACTS_BUCKET }}/$KEY"
+          echo "uri=s3://${{ vars.ARTIFACTS_BUCKET }}/$KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Desplegar en EC2 vía SSM
+        env:
+          INSTANCE: ${{ vars.EC2_INSTANCE_ID }}
+          URI: ${{ steps.upload.outputs.uri }}
+        run: |
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy ${GITHUB_SHA::7}" \
+            --parameters "commands=[\"/opt/tareas-db/deploy.sh $URI\"]" \
+            --query "Command.CommandId" --output text)
+          echo "Comando SSM: $CMD_ID"
+
+          for i in $(seq 1 60); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$CMD_ID" \
+              --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
+            case "$STATUS" in
+              Success|Failed|Cancelled|TimedOut) break ;;
+            esac
+            sleep 5
+          done
+
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE" \
+            --query "[StandardOutputContent,StandardErrorContent]" --output text
+          echo "Estado final: $STATUS"
+          [ "$STATUS" = "Success" ]
+
+      - name: Smoke test vía CloudFront
+        run: |
+          curl -sf --retry 5 --retry-delay 5 "https://${{ vars.CF_DOMAIN }}/tareas-db/api/health"
+          echo
+          curl -sf "https://${{ vars.CF_DOMAIN }}/tareas-db/api/v1/tareas?size=1"
