@@ -6,7 +6,7 @@ Globals:
   Function:
     Runtime: java21
     Architectures: [arm64]          # Graviton: ~20% más barato
-    MemorySize: 512
+    MemorySize: 1024
     Timeout: 10
     AutoPublishAlias: live          # SnapStart funciona sobre versiones publicadas
     SnapStart:

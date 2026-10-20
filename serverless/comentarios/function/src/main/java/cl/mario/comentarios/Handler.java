@@ -1,5 +1,6 @@
 package cl.mario.comentarios;
 
+import cl.mario.comentarios.model.Comentario;
 import cl.mario.comentarios.repository.ComentarioRepository;
 import cl.mario.comentarios.util.ConstantsUtil;
 import cl.mario.comentarios.util.ParseUtil;
@@ -9,17 +10,42 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.crac.Core;
+import org.crac.Resource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-public class Handler implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
+public class Handler implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse>, Resource {
 
     private static final String BASE = "/comentarios-api/tareas/{tareaId}/comentarios";
     private static final ObjectMapper JSON = new ObjectMapper();
     private final ComentarioRepository repo = new ComentarioRepository();
+
+    public Handler() {
+        // Registra esta clase para recibir los avisos de checkpoint/restore de SnapStart
+        Core.getGlobalContext().register(this);
+    }
+
+    @Override
+    public void beforeCheckpoint(org.crac.Context<? extends Resource> context) {
+        try {
+            // Consulta real a DynamoDB con una tarea que no existe: carga el SDK,
+            // la firma de peticiones y la conexión TLS, sin modificar datos
+            repo.listar(-1L);
+            // Carga y "calienta" Jackson
+            ParseUtil.respuesta(200, "OK", List.of(new Comentario(0, "x", "x", "x")));
+        } catch (Exception e) {
+            // El priming es una optimización: si falla, la función funciona igual
+        }
+    }
+
+    @Override
+    public void afterRestore(org.crac.Context<? extends Resource> context) {
+        // Nada que hacer: el SDK renueva credenciales y conexiones por su cuenta
+    }
 
     @Override
     public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent event, Context ctx) {

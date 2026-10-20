@@ -8,10 +8,11 @@ import java.util.Map;
 
 public class ParseUtil {
 
+    private static final ObjectMapper JSON = new ObjectMapper();
+
     private ParseUtil() {}
 
     public static APIGatewayV2HTTPResponse respuesta(int code, String message, Object data) {
-        ObjectMapper JSON = new ObjectMapper();
         try {
             String body = null;
             if (code != 204) {
