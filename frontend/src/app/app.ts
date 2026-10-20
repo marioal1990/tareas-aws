@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { TareaService } from './service/tarea.service';
 import { Tarea } from './model/tarea.model';
+import { Comentarios } from './comentarios/comentarios';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, Comentarios],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -19,6 +20,9 @@ export class App implements OnInit {
   hayMas = signal(false);
   error = signal<string | null>(null);
   nueva = '';
+
+  /** ID de la tarea con los comentarios desplegados (solo una a la vez) */
+  comentariosAbiertos = signal<number | null>(null);
 
   ngOnInit() { this.cargar(); }
 
@@ -59,5 +63,9 @@ export class App implements OnInit {
 
   private mostrarError(e: HttpErrorResponse) {
     this.error.set(e.error?.message ?? `Error ${e.status}`);
+  }
+
+  toggleComentarios(id: number) {
+    this.comentariosAbiertos.update(actual => (actual === id ? null : id));
   }
 }

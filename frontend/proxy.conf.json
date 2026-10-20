@@ -1,3 +1,8 @@
 {
-  "/tareas-db": { "target": "http://localhost:8888", "secure": false }
+  "/tareas-db": { "target": "http://localhost:8888", "secure": false },
+  "/comentarios-api": {
+    "target": "https://zy38yc9jwk.execute-api.us-east-2.amazonaws.com",
+    "secure": true,
+    "changeOrigin": true
+  }
 }

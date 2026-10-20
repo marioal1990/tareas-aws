@@ -1,0 +1,10 @@
+.comentarios { margin: .5rem 0 .75rem 2rem; padding: .75rem; background: #f6f7f9; border-radius: 6px; }
+.nuevo { display: flex; gap: .5rem; margin-bottom: .5rem; }
+.nuevo input { flex: 1; padding: .35rem .5rem; }
+ul { list-style: none; padding: 0; margin: 0; }
+li { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid #e3e3e3; }
+li:last-child { border-bottom: none; }
+li span { flex: 1; }
+li small { color: #777; white-space: nowrap; }
+.info { color: #777; font-style: italic; }
+.error { color: #b00020; margin: .25rem 0; }

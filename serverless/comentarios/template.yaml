@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Microservicio de comentarios para tareas (Lambda Java 21 + DynamoDB)
+
+Globals:
+  Function:
+    Runtime: java21
+    Architectures: [arm64]          # Graviton: ~20% más barato
+    MemorySize: 512
+    Timeout: 10
+    AutoPublishAlias: live          # SnapStart funciona sobre versiones publicadas
+    SnapStart:
+      ApplyOn: PublishedVersions
+    Environment:
+      Variables:
+        JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+
+Resources:
+  ComentariosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: tareas-comentarios
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: tareaId, AttributeType: N }
+        - { AttributeName: comentarioId, AttributeType: S }
+      KeySchema:
+        - { AttributeName: tareaId, KeyType: HASH }        # partición: una tarea
+        - { AttributeName: comentarioId, KeyType: RANGE }  # orden: por fecha
+
+  ComentariosApi:
+    Type: AWS::Serverless::HttpApi
+
+  ComentariosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: tareas-comentarios
+      CodeUri: function/
+      Handler: cl.mario.comentarios.Handler::handleRequest
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ComentariosTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ComentariosTable     # mínimo privilegio: solo esta tabla
+      Events:
+        Listar:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ComentariosApi
+            Path: /comentarios-api/tareas/{tareaId}/comentarios
+            Method: GET
+        Crear:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ComentariosApi
+            Path: /comentarios-api/tareas/{tareaId}/comentarios
+            Method: POST
+        Borrar:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ComentariosApi
+            Path: /comentarios-api/tareas/{tareaId}/comentarios/{comentarioId}
+            Method: DELETE
+
+  ComentariosLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/tareas-comentarios
+      RetentionInDays: 7                          # no acumular logs para siempre
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${ComentariosApi}.execute-api.${AWS::Region}.amazonaws.com"
+  ApiDomain:
+    Description: Dominio para usar como origen en CloudFront
+    Value: !Sub "${ComentariosApi}.execute-api.${AWS::Region}.amazonaws.com"

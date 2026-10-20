@@ -1,0 +1,28 @@
+<section class="comentarios">
+  <form class="nuevo" (ngSubmit)="agregar()">
+    <input [(ngModel)]="nuevo" name="nuevo" placeholder="Escribe un comentario" maxlength="500" />
+    <button type="submit" class="btn btn-primary btn-sm" [disabled]="!nuevo.trim() || enviando()">
+      {{ enviando() ? 'Enviando...' : 'Comentar' }}
+    </button>
+  </form>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (cargando()) {
+    <p class="info">Cargando comentarios...</p>
+  } @else {
+    <ul>
+      @for (c of comentarios(); track c.comentarioId) {
+        <li>
+          <span>{{ c.texto }}</span>
+          <small>{{ c.creadoEn | date: 'dd-MM-yyyy HH:mm' }}</small>
+          <button class="btn btn-outline-danger btn-sm" (click)="borrar(c)" aria-label="Eliminar comentario">✕</button>
+        </li>
+      } @empty {
+        <li class="info">Sin comentarios todavía.</li>
+      }
+    </ul>
+  }
+</section>
