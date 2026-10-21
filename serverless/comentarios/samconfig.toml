@@ -2,7 +2,7 @@ version = 0.1
 
 [default.deploy.parameters]
 stack_name = "comentarios-api"
-resolve_s3 = true
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-dojmvaqx96sw"
 s3_prefix = "comentarios-api"
 region = "us-east-2"
 confirm_changeset = true
