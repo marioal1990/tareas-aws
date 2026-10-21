@@ -4,7 +4,9 @@ public class ConstantsUtil {
 
     private ConstantsUtil() {}
 
-    private static final String
+    public static final String CODE = "code";
+    public static final String MESSAGE = "message";
+    public static final String DATA = "data";
 
     public static final String TAREA_ID = "tareaId";
     public static final String COMENTARIO_ID = "comentarioId";

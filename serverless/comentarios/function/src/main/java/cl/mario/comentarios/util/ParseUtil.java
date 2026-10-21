@@ -17,9 +17,9 @@ public class ParseUtil {
             String body = null;
             if (code != 204) {
                 Map<String, Object> r = new LinkedHashMap<>();
-                r.put("code", code);
-                r.put("message", message);
-                r.put("data", data);
+                r.put(ConstantsUtil.CODE, code);
+                r.put(ConstantsUtil.MESSAGE, message);
+                r.put(ConstantsUtil.DATA, data);
                 body = JSON.writeValueAsString(r);
             }
             return APIGatewayV2HTTPResponse.builder()
