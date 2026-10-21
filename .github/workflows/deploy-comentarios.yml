@@ -1,0 +1,57 @@
+name: Deploy Comentarios (SAM)
+
+on:
+  push:
+    branches: [master]
+    paths: ['serverless/comentarios/**', '.github/workflows/deploy-comentarios.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: serverless/comentarios
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+          cache: maven
+          cache-dependency-path: serverless/comentarios/function/pom.xml
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Validar plantilla
+        run: sam validate --lint
+
+      - name: Compilar
+        run: sam build      # el runner ya tiene Java 21 y Maven: no necesita Docker
+
+      - name: Desplegar
+        run: |
+          sam deploy \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --s3-bucket "${{ vars.SAM_BUCKET }}" \
+            --role-arn "${{ vars.CFN_EXEC_ROLE_ARN }}"
+
+      - name: Smoke test vía CloudFront
+        run: |
+          curl -sf --retry 5 --retry-delay 5 \
+            "https://${{ vars.CF_DOMAIN }}/comentarios-api/tareas/1/comentarios"
+          echo
