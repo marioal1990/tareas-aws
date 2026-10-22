@@ -1,41 +1,56 @@
 <main class="contenedor">
-  <h1>Mis tareas</h1>
+  <header>
+    <h1>Mis tareas</h1>
+    @if (autenticado()) {
+      <span class="usuario">{{ email() }}</span>
+      <button class="btn btn-outline-secondary btn-sm" (click)="logout()">Cerrar sesión</button>
+    }
+  </header>
 
-  <form class="nueva" (ngSubmit)="agregar()">
-    <input [(ngModel)]="nueva" name="nueva" placeholder="Nueva tarea" maxlength="200" />
-    <button type="submit" class="btn btn-primary" [disabled]="!nueva.trim()">Agregar</button>
-  </form>
+  @if (!autenticado()) {
+    <section class="bienvenida">
+      <p>Inicia sesión para ver y administrar tus tareas.</p>
+      <button class="btn btn-primary" (click)="login()">Iniciar sesión</button>
+    </section>
+  } @else {
+    <form class="nueva" (ngSubmit)="agregar()">
+      <input [(ngModel)]="nueva" name="nueva" placeholder="Nueva tarea" maxlength="200" />
+      <button type="submit" class="btn btn-primary" [disabled]="!nueva.trim()">Agregar</button>
+    </form>
 
-  @if (error()) {
-    <p class="error">{{ error() }}</p>
-  }
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
 
-  <ul class="lista">
-  @for (t of tareas(); track t.id) {
-    <li [class.hecha]="t.completada">
-      <div class="fila">
-        <input class="form-check-input" type="checkbox" [checked]="t.completada" (change)="alternar(t)" />
-        <span>{{ t.titulo }}</span>
-        <small>{{ t.creadaEn | date: 'dd-MM-yyyy HH:mm' }}</small>
-        <button class="btn btn-outline-secondary btn-sm" (click)="toggleComentarios(t.id!)"
-                [attr.aria-expanded]="comentariosAbiertos() === t.id">
-          💬 {{ comentariosAbiertos() === t.id ? 'Ocultar' : 'Comentarios' }}
-        </button>
-        <button class="btn btn-danger btn-sm" (click)="borrar(t.id!)" aria-label="Eliminar">✕</button>
-      </div>
+    <ul class="lista">
+      @for (t of tareas(); track t.id) {
+        <li [class.hecha]="t.completada">
+          <div class="fila">
+            <input class="form-check-input" type="checkbox" [checked]="t.completada" (change)="alternar(t)" />
+            <span>{{ t.titulo }}</span>
+            <small>{{ t.creadaEn | date: 'dd-MM-yyyy HH:mm' }}</small>
+            <button class="btn btn-outline-secondary btn-sm" (click)="toggleComentarios(t.id!)"
+                    [attr.aria-expanded]="comentariosAbiertos() === t.id">
+              💬 {{ comentariosAbiertos() === t.id ? 'Ocultar' : 'Comentarios' }}
+            </button>
+            <button class="btn btn-danger btn-sm" (click)="borrar(t.id!)" aria-label="Eliminar">✕</button>
+          </div>
 
-      @if (comentariosAbiertos() === t.id) {
-        <app-comentarios [tareaId]="t.id!" />
+          @if (comentariosAbiertos() === t.id) {
+            <app-comentarios [tareaId]="t.id!" />
+          }
+        </li>
+      } @empty {
+        <li>No hay tareas.</li>
       }
-    </li>
-  } @empty {
-    <li>No hay tareas.</li>
-  }
-</ul>
+    </ul>
 
-  <nav class="paginacion">
-    <button class="btn btn-outline-primary" (click)="cambiarPagina(-1)" [disabled]="pagina() === 1">Anterior</button>
-    <span>Página {{ pagina() }}</span>
-    <button class="btn btn-outline-primary" (click)="cambiarPagina(1)" [disabled]="!hayMas()">Siguiente</button>
-  </nav>
+    <nav class="paginacion">
+      <button class="btn btn-outline-primary" (click)="cambiarPagina(-1)" [disabled]="pagina() === 1">Anterior</button>
+      <span>Página {{ pagina() }}</span>
+      <button class="btn btn-outline-primary" (click)="cambiarPagina(1)" [disabled]="!hayMas()">Siguiente</button>
+    </nav>
+  }
+
+
 </main>

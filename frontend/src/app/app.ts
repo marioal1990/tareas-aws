@@ -5,6 +5,8 @@ import { DatePipe } from '@angular/common';
 import { TareaService } from './service/tarea.service';
 import { Tarea } from './model/tarea.model';
 import { Comentarios } from './comentarios/comentarios';
+import { OidcSecurityService } from 'angular-auth-oidc-client';
+import { COGNITO } from './auth.config';
 
 @Component({
   selector: 'app-root',
@@ -15,6 +17,9 @@ import { Comentarios } from './comentarios/comentarios';
 export class App implements OnInit {
   private tareaService = inject(TareaService);
 
+  //INICIAR SESION - COGNITO
+  private oidc = inject(OidcSecurityService);
+
   tareas = signal<Tarea[]>([]);
   pagina = signal(1);
   hayMas = signal(false);
@@ -24,7 +29,18 @@ export class App implements OnInit {
   /** ID de la tarea con los comentarios desplegados (solo una a la vez) */
   comentariosAbiertos = signal<number | null>(null);
 
-  ngOnInit() { this.cargar(); }
+  //INICIAR SESION - COGNITO
+  autenticado = signal(false);
+  email = signal<string | null>(null);
+
+  ngOnInit() {
+    // Procesa el regreso desde Cognito (?code=...) o recupera una sesión existente
+    this.oidc.checkAuth().subscribe(({ isAuthenticated, userData }) => {
+      this.autenticado.set(isAuthenticated);
+      this.email.set(userData?.email ?? null);
+      if (isAuthenticated) this.cargar();
+    });
+  }
 
   cargar() {
     this.tareaService.listar(this.pagina()).subscribe({
@@ -65,7 +81,24 @@ export class App implements OnInit {
     this.error.set(e.error?.message ?? `Error ${e.status}`);
   }
 
+  /**
+   * Alterna la visibilidad de los comentarios de una tarea. Si ya están visibles, los oculta; si no lo están, los muestra.
+   * Solo se permite que los comentarios de una tarea estén visibles a la vez.
+   * @param id ID de la tarea cuyos comentarios se quieren mostrar u ocultar
+   */
   toggleComentarios(id: number) {
     this.comentariosAbiertos.update(actual => (actual === id ? null : id));
+  }
+
+  //INICIAR SESION - COGNITO
+  login() {
+    this.oidc.authorize();
+  }
+
+  logout() {
+    // Cognito no publica el endpoint de logout estándar: se cierra la sesión local y luego la de Cognito
+    this.oidc.logoffLocal();
+    const volver = encodeURIComponent(window.location.origin + '/');
+    window.location.href = `${COGNITO.dominio}/logout?client_id=${COGNITO.clientId}&logout_uri=${volver}`;
   }
 }

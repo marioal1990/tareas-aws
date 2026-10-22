@@ -8,3 +8,7 @@
 .lista li.hecha .fila span { text-decoration: line-through; color: #888; }
 .error { color: #b00020; }
 .paginacion { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1rem; }
+.barra { display: flex; align-items: center; gap: .75rem; }
+.barra h1 { flex: 1; margin: 0; }
+.usuario { color: #555; font-size: .9rem; }
+.bienvenida { text-align: center; margin-top: 3rem; }
