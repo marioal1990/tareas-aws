@@ -46,11 +46,11 @@ public class ComentarioRepository {
         dynamo.putItem(PutItemRequest.builder()
                 .tableName(tabla)
                 .item(Map.of(
-                        ConstantsUtil.TAREA_ID, AttributeValue.fromN(String.valueOf(tareaId)),
-                        ConstantsUtil.COMENTARIO_ID, AttributeValue.fromS(id),
-                        ConstantsUtil.TEXTO, AttributeValue.fromS(texto),
+                        ConstantsUtil.TAREA_ID, AttributeValue.fromN(String.valueOf(c.tareaId())),
+                        ConstantsUtil.COMENTARIO_ID, AttributeValue.fromS(c.comentarioId()),
+                        ConstantsUtil.TEXTO, AttributeValue.fromS(c.texto()),
                         ConstantsUtil.CREADO_EN, AttributeValue.fromS(c.creadoEn()),
-                        ConstantsUtil.USUARIO, AttributeValue.fromS(autor)))
+                        ConstantsUtil.USUARIO, AttributeValue.fromS(c.autor())))
                 .build());
         return c;
     }
