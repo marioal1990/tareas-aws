@@ -70,6 +70,7 @@ public class ComentarioRepository {
                 Long.parseLong(item.get(ConstantsUtil.TAREA_ID).n()),
                 item.get(ConstantsUtil.COMENTARIO_ID).s(),
                 item.get(ConstantsUtil.TEXTO).s(),
-                item.get(ConstantsUtil.CREADO_EN).s());
+                item.get(ConstantsUtil.CREADO_EN).s(),
+                item.get(ConstantsUtil.USUARIO).s());
     }
 }

@@ -12,4 +12,5 @@ public class ConstantsUtil {
     public static final String COMENTARIO_ID = "comentarioId";
     public static final String TEXTO = "texto";
     public static final String CREADO_EN = "creadoEn";
+    public static final String USUARIO = "usuario";
 }
