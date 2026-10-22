@@ -49,7 +49,8 @@ public class ComentarioRepository {
                         ConstantsUtil.TAREA_ID, AttributeValue.fromN(String.valueOf(tareaId)),
                         ConstantsUtil.COMENTARIO_ID, AttributeValue.fromS(id),
                         ConstantsUtil.TEXTO, AttributeValue.fromS(texto),
-                        ConstantsUtil.CREADO_EN, AttributeValue.fromS(c.creadoEn())))
+                        ConstantsUtil.CREADO_EN, AttributeValue.fromS(c.creadoEn()),
+                        ConstantsUtil.USUARIO, AttributeValue.fromS(autor)))
                 .build());
         return c;
     }
