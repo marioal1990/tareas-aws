@@ -52,6 +52,10 @@ jobs:
 
       - name: Smoke test vía CloudFront
         run: |
-          curl -sf --retry 5 --retry-delay 5 \
-            "https://${{ vars.CF_DOMAIN }}/comentarios-api/tareas/1/comentarios"
-          echo
+          URL="https://${{ vars.CF_DOMAIN }}/comentarios-api/tareas/1/comentarios"
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" --retry 5 --retry-delay 5 "$URL")
+          echo "Sin token → HTTP $CODE"
+          if [ "$CODE" != "401" ]; then
+            echo "::error::Se esperaba 401 (API protegida con Cognito) y llegó $CODE"
+            exit 1
+          fi

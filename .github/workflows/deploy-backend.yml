@@ -121,6 +121,16 @@ jobs:
 
       - name: Smoke test vía CloudFront
         run: |
-          curl -sf --retry 5 --retry-delay 5 "https://${{ vars.CF_DOMAIN }}/tareas-db/api/health"
+          CF="https://${{ vars.CF_DOMAIN }}"
+
+          # El health es público: debe responder 200
+          curl -sf --retry 5 --retry-delay 5 "$CF/tareas-db/api/health"
           echo
-          curl -sf "https://${{ vars.CF_DOMAIN }}/tareas-db/api/v1/tareas?size=1"
+
+          # La API exige token: sin él debe responder 401
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" "$CF/tareas-db/api/v1/tareas?size=1")
+          echo "Sin token → HTTP $CODE"
+          if [ "$CODE" != "401" ]; then
+            echo "::error::Se esperaba 401 (API protegida con Cognito) y llegó $CODE"
+            exit 1
+          fi
