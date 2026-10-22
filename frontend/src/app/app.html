@@ -9,6 +9,9 @@
 
   @if (!autenticado()) {
     <section class="bienvenida">
+      @if (sesion.aviso()) {
+        <p class="aviso">{{ sesion.aviso() }}</p>
+      }
       <p>Inicia sesión para ver y administrar tus tareas.</p>
       <button class="btn btn-primary" (click)="login()">Iniciar sesión</button>
     </section>

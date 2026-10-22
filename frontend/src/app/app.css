@@ -12,3 +12,4 @@
 .barra h1 { flex: 1; margin: 0; }
 .usuario { color: #555; font-size: .9rem; }
 .bienvenida { text-align: center; margin-top: 3rem; }
+.aviso { background: #fff4e5; color: #8a5300; padding: .6rem 1rem; border-radius: 6px; }

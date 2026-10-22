@@ -7,6 +7,7 @@ import { Tarea } from './model/tarea.model';
 import { Comentarios } from './comentarios/comentarios';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { COGNITO } from './auth.config';
+import { SesionService } from './service/sesion.service';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +27,8 @@ export class App implements OnInit {
   error = signal<string | null>(null);
   nueva = '';
 
+  sesion = inject(SesionService);
+
   /** ID de la tarea con los comentarios desplegados (solo una a la vez) */
   comentariosAbiertos = signal<number | null>(null);
 
@@ -36,9 +39,13 @@ export class App implements OnInit {
   ngOnInit() {
     // Procesa el regreso desde Cognito (?code=...) o recupera una sesión existente
     this.oidc.checkAuth().subscribe(({ isAuthenticated, userData }) => {
-      this.autenticado.set(isAuthenticated);
       this.email.set(userData?.email ?? null);
       if (isAuthenticated) this.cargar();
+    });
+
+    // Se actualiza en cada cambio: login, renovación o sesión expirada
+    this.oidc.isAuthenticated$.subscribe(({ isAuthenticated }) => {
+      this.autenticado.set(isAuthenticated);
     });
   }
 
@@ -92,6 +99,7 @@ export class App implements OnInit {
 
   //INICIAR SESION - COGNITO
   login() {
+    this.sesion.limpiar();
     this.oidc.authorize();
   }
 
