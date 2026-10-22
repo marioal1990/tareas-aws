@@ -17,6 +17,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Validar configuración
+        working-directory: .          # ← antes del checkout, la carpeta "frontend" aún no existe
         env:
           S3_BUCKET: ${{ vars.S3_BUCKET }}
           CF_DIST_ID: ${{ vars.CF_DIST_ID }}
