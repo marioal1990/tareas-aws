@@ -2,6 +2,14 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Microservicio de comentarios para tareas (Lambda Java 21 + DynamoDB)
 
+Parameters:
+  CognitoIssuer:
+    Type: String
+    Default: https://cognito-idp.us-east-2.amazonaws.com/us-east-2_nckcMjeDK
+  CognitoClientId:
+    Type: String
+    Default: 5lggp4fqhicqc5mdrqf0hvile3
+
 Globals:
   Function:
     Runtime: java21
@@ -30,6 +38,16 @@ Resources:
 
   ComentariosApi:
     Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Ref CognitoIssuer
+              audience:
+                - !Ref CognitoClientId   # API Gateway lo compara con el claim client_id
 
   ComentariosFunction:
     Type: AWS::Serverless::Function
