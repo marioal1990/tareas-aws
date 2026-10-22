@@ -2,6 +2,7 @@ package cl.mario.comentarios.util;
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,5 +31,11 @@ public class ParseUtil {
         } catch (Exception e) {
             return APIGatewayV2HTTPResponse.builder().withStatusCode(500).build();
         }
+    }
+
+    /** Lee un atributo String; si el item no lo tiene, devuelve el valor por defecto. */
+    public static String texto(Map<String, AttributeValue> item, String nombre, String porDefecto) {
+        AttributeValue v = item.get(nombre);
+        return v != null && v.s() != null ? v.s() : porDefecto;
     }
 }

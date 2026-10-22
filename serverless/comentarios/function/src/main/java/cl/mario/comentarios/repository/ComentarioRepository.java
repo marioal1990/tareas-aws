@@ -2,6 +2,7 @@ package cl.mario.comentarios.repository;
 
 import cl.mario.comentarios.model.Comentario;
 import cl.mario.comentarios.util.ConstantsUtil;
+import cl.mario.comentarios.util.ParseUtil;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -69,9 +70,9 @@ public class ComentarioRepository {
     private Comentario aComentario(Map<String, AttributeValue> item) {
         return new Comentario(
                 Long.parseLong(item.get(ConstantsUtil.TAREA_ID).n()),
-                item.get(ConstantsUtil.COMENTARIO_ID).s(),
-                item.get(ConstantsUtil.TEXTO).s(),
-                item.get(ConstantsUtil.CREADO_EN).s(),
-                item.get(ConstantsUtil.USUARIO).s());
+                ParseUtil.texto(item, ConstantsUtil.COMENTARIO_ID, ""),
+                ParseUtil.texto(item, ConstantsUtil.TEXTO, ""),
+                ParseUtil.texto(item, ConstantsUtil.CREADO_EN, ""),
+                ParseUtil.texto(item, ConstantsUtil.USUARIO, "anónimo"));
     }
 }

@@ -83,7 +83,7 @@ public class Handler implements RequestHandler<APIGatewayV2HTTPEvent, APIGateway
 
         Map<String, String> claims = event.getRequestContext().getAuthorizer().getJwt().getClaims();
         String autor = claims.getOrDefault("username", "anónimo");
-        if (autor.isEmpty()) return ParseUtil.respuesta(404, "username no encontrado", null);
+        if (autor.isEmpty()) return ParseUtil.respuesta(401, "No se pudo identificar al usuario", null);
 
         return ParseUtil.respuesta(201, "Comentario creado", repo.crear(tareaId, texto, autor));
     }
