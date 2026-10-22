@@ -37,11 +37,11 @@ public class ComentarioRepository {
         return resp.items().stream().map(this::aComentario).toList();
     }
 
-    public Comentario crear(long tareaId, String texto) {
+    public Comentario crear(long tareaId, String texto, String autor) {
         Instant ahora = Instant.now();
         // ID ordenable por fecha y seguro para URLs: 0001792...-a1b2c3d4
         String id = String.format("%013d-%s", ahora.toEpochMilli(), UUID.randomUUID().toString().substring(0, 8));
-        Comentario c = new Comentario(tareaId, id, texto, ahora.toString());
+        Comentario c = new Comentario(tareaId, id, texto, ahora.toString(), autor);
 
         dynamo.putItem(PutItemRequest.builder()
                 .tableName(tabla)

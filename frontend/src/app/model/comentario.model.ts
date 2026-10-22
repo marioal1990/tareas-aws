@@ -3,4 +3,5 @@ export interface Comentario {
   comentarioId: string;
   texto: string;
   creadoEn: string;
+  autor: string;
 }

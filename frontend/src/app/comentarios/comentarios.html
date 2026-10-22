@@ -18,6 +18,7 @@
         <li>
           <span>{{ c.texto }}</span>
           <small>{{ c.creadoEn | date: 'dd-MM-yyyy HH:mm' }}</small>
+          <small class="text-muted">{{ c.autor }}</small>
           <button class="btn btn-outline-danger btn-sm" (click)="borrar(c)" aria-label="Eliminar comentario">✕</button>
         </li>
       } @empty {

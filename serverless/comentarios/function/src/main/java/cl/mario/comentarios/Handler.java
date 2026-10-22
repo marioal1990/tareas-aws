@@ -75,11 +75,15 @@ public class Handler implements RequestHandler<APIGatewayV2HTTPEvent, APIGateway
         if (body != null && event.getIsBase64Encoded()) {
             body = new String(Base64.getDecoder().decode(body), StandardCharsets.UTF_8);
         }
+
         JsonNode json = body == null ? null : JSON.readTree(body);
         String texto = json == null || !json.hasNonNull("texto") ? "" : json.get("texto").asText().trim();
-
         if (texto.isEmpty()) return ParseUtil.respuesta(400, "El texto es obligatorio", null);
         if (texto.length() > 500) return ParseUtil.respuesta(400, "El texto no puede superar 500 caracteres", null);
+
+        Map<String, String> claims = event.getRequestContext().getAuthorizer().getJwt().getClaims();
+        String autor = claims.getOrDefault("username", "anónimo");
+        if (autor.isEmpty()) return ParseUtil.respuesta(404, "username no encontrado");
 
         return ParseUtil.respuesta(201, "Comentario creado", repo.crear(tareaId, texto));
     }
