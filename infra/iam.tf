@@ -206,7 +206,7 @@ resource "aws_iam_user_policy" "github_backend" {
         Effect = "Allow"
         Action = "ssm:SendCommand"
         Resource = [
-          "arn:aws:ec2:${var.region}:${local.account_id}:instance/${local.ec2_instance_id}",
+          "arn:aws:ec2:${var.region}:${local.account_id}:instance/${aws_instance.backend.id}",
           "arn:aws:ssm:${var.region}::document/AWS-RunShellScript",
         ]
       },
