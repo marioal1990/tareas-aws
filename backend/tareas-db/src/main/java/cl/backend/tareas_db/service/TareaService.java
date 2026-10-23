@@ -1,5 +1,6 @@
 package cl.backend.tareas_db.service;
 
+import cl.backend.tareas_db.evento.TareaEliminadaEvent;
 import cl.backend.tareas_db.exception.DuplicateResourceException;
 import cl.backend.tareas_db.exception.ResourceNotFoundException;
 import cl.backend.tareas_db.model.dto.TareaDTO;
@@ -8,6 +9,7 @@ import cl.backend.tareas_db.repository.TareaRepository;
 import cl.backend.tareas_db.util.ParseoUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class TareaService {
 
     private final TareaRepository repo;
+
+    private final ApplicationEventPublisher eventos;
 
     @Transactional(readOnly = true)
     public Slice<TareaDTO> findAll(Pageable pageable) {
@@ -59,9 +63,10 @@ public class TareaService {
 
     @Transactional
     public void delete(Long id) {
-        if (this.repo.existsById(id)) {
+        if (!repo.existsById(id)) {
             throw new ResourceNotFoundException("Tarea", id);
         }
-        this.repo.deleteById(id);
+        repo.deleteById(id);
+        eventos.publishEvent(new TareaEliminadaEvent(id));
     }
 }
