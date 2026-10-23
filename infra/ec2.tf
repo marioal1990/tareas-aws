@@ -67,7 +67,7 @@ resource "aws_instance" "backend" {
   ebs_optimized                        = true
   monitoring                           = false
   disable_api_stop                     = false
-  disable_api_termination              = false
+  disable_api_termination              = true # AWS rechaza terminar la instancia (consola, CLI o Terraform)
   instance_initiated_shutdown_behavior = "stop"
   source_dest_check                    = true
   tenancy                              = "default"

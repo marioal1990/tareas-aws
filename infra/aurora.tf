@@ -41,8 +41,9 @@ resource "aws_rds_cluster" "tareas" {
   auto_minor_version_upgrade   = true
   copy_tags_to_snapshot        = false
   delete_automated_backups     = true
-  deletion_protection          = false
-  skip_final_snapshot          = true
+  deletion_protection          = true # AWS rechaza borrar el cluster, venga de donde venga
+  skip_final_snapshot          = false # si algún día se borra, se toma un snapshot final
+  final_snapshot_identifier    = "tareas-db-final"
 
   # Monitoreo básico (sin Enhanced Monitoring: requeriría un rol que la SCP bloquea)
   database_insights_mode       = "standard"
