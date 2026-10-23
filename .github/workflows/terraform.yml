@@ -1,0 +1,120 @@
+name: Terraform (infra)
+
+# - push a master con cambios en infra/  -> solo PLAN (automático, solo lectura)
+# - "Run workflow" con aplicar = true     -> PLAN + APPLY (manual)
+on:
+  push:
+    branches: [master]
+    paths: ['infra/**', '.github/workflows/terraform.yml']
+  workflow_dispatch:
+    inputs:
+      aplicar:
+        description: 'Aplicar los cambios (terraform apply)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Nunca dos ejecuciones de Terraform al mismo tiempo
+concurrency:
+  group: terraform
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: infra
+
+env:
+  TF_IN_AUTOMATION: 'true'
+  AWS_REGION: us-east-2
+  TF_VERSION: 1.16.6
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_PLAN_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_PLAN_AWS_SECRET_ACCESS_KEY }}
+    outputs:
+      cambios: ${{ steps.plan.outputs.cambios }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Formato
+        run: terraform fmt -check -recursive
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Validar
+        run: terraform validate
+
+      - name: Plan
+        id: plan
+        run: |
+          set +e
+          terraform plan -input=false -no-color -lock-timeout=60s -detailed-exitcode -out=tfplan > plan.txt 2>&1
+          codigo=$?
+          set -e
+          cat plan.txt
+
+          # -detailed-exitcode: 0 = sin cambios, 1 = error, 2 = hay cambios
+          if [ "$codigo" -eq 1 ]; then exit 1; fi
+          if [ "$codigo" -eq 2 ]; then echo "cambios=true" >> "$GITHUB_OUTPUT"; else echo "cambios=false" >> "$GITHUB_OUTPUT"; fi
+
+          {
+            echo "## Terraform plan"
+            echo '```'
+            grep -E "will be|must be|^Plan:|No changes" plan.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if grep -q "must be replaced" plan.txt; then
+            echo "::warning::El plan REEMPLAZA recursos. Revísalo con cuidado antes de aplicar."
+          fi
+
+      - name: Guardar plan
+        if: steps.plan.outputs.cambios == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: infra/tfplan
+          retention-days: 1
+
+  apply:
+    name: Apply
+    needs: plan
+    # Solo con ejecución manual, "aplicar" marcado y si el plan tiene cambios
+    if: github.event_name == 'workflow_dispatch' && inputs.aplicar && needs.plan.outputs.cambios == 'true'
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_APPLY_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_APPLY_AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Descargar plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: infra
+
+      # Aplica EXACTAMENTE el plan revisado. Si alguien cambió algo entre medio,
+      # Terraform lo detecta ("Saved plan is stale") y se detiene.
+      - name: Apply
+        run: terraform apply -input=false -lock-timeout=60s tfplan

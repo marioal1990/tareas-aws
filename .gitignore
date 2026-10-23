@@ -67,3 +67,4 @@ desktop.ini
 crash.log
 generated.tf*
 plan-*.txt
+tfplan
