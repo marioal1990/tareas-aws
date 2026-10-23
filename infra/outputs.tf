@@ -22,3 +22,13 @@ output "backend_dns_publico" {
   description = "DNS de la EC2: es el origen /tareas-db/* en CloudFront"
   value       = aws_eip.backend.public_dns
 }
+
+output "cloudfront_dominio" {
+  description = "URL pública de la aplicación"
+  value       = "https://${aws_cloudfront_distribution.app.domain_name}"
+}
+
+output "cloudfront_distribution_id" {
+  description = "ID de la distribución (variable CF_DIST_ID de GitHub)"
+  value       = aws_cloudfront_distribution.app.id
+}

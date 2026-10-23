@@ -31,7 +31,7 @@ resource "aws_s3_bucket_policy" "frontend" {
       Resource  = "${aws_s3_bucket.frontend.arn}/*"
       Condition = {
         ArnLike = {
-          "AWS:SourceArn" = "arn:aws:cloudfront::${local.account_id}:distribution/${local.cloudfront_distribution_id}"
+          "AWS:SourceArn" = aws_cloudfront_distribution.app.arn
         }
       }
     }]

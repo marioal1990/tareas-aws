@@ -184,7 +184,7 @@ resource "aws_iam_user_policy" "github_frontend" {
       {
         Effect   = "Allow"
         Action   = ["cloudfront:CreateInvalidation", "cloudfront:GetDistribution"]
-        Resource = "arn:aws:cloudfront::${local.account_id}:distribution/${local.cloudfront_distribution_id}"
+        Resource = aws_cloudfront_distribution.app.arn
       },
     ]
   })

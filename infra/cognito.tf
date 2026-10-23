@@ -71,8 +71,8 @@ resource "aws_cognito_user_pool_client" "angular" {
   supported_identity_providers         = ["COGNITO"]
   explicit_auth_flows                  = ["ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_USER_SRP_AUTH"]
 
-  callback_urls = ["http://localhost:4200/", "https://${var.dominio_app}/"]
-  logout_urls   = ["http://localhost:4200/", "https://${var.dominio_app}/"]
+  callback_urls = ["http://localhost:4200/", "https://${aws_cloudfront_distribution.app.domain_name}/"]
+  logout_urls   = ["http://localhost:4200/", "https://${aws_cloudfront_distribution.app.domain_name}/"]
 
   # Duración de los tokens
   access_token_validity  = 60
