@@ -73,7 +73,9 @@ resource "aws_instance" "backend" {
   tenancy                              = "default"
 
   credit_specification {
-    cpu_credits = "unlimited"
+    # "standard": si se acaban los créditos de CPU, la instancia se vuelve más lenta
+    # en vez de cobrar créditos extra (como pasa con "unlimited")
+    cpu_credits = "standard"
   }
 
   # IMDSv2 obligatorio (más seguro); hop limit 2 por compatibilidad con contenedores
