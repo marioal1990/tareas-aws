@@ -110,11 +110,11 @@ Resources:
               MaximumRetryAttempts: 5
               MaximumEventAgeInSeconds: 3600
 
-    LimpiezaLogs:
-      Type: AWS::Logs::LogGroup
-      Properties:
-        LogGroupName: /aws/lambda/tareas-comentarios-limpieza
-        RetentionInDays: 7
+  LimpiezaLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/tareas-comentarios-limpieza
+      RetentionInDays: 7
 
 Outputs:
   ApiUrl:
