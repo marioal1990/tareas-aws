@@ -40,6 +40,15 @@ jobs:
     outputs:
       cambios: ${{ steps.plan.outputs.cambios }}
     steps:
+      - name: Validar credenciales
+        working-directory: .
+        run: |
+          faltan=0
+          [ -n "$AWS_ACCESS_KEY_ID" ]     || { echo "::error::Falta el secret TF_PLAN_AWS_ACCESS_KEY_ID (pestaña Secrets)"; faltan=1; }
+          [ -n "$AWS_SECRET_ACCESS_KEY" ] || { echo "::error::Falta el secret TF_PLAN_AWS_SECRET_ACCESS_KEY (pestaña Secrets)"; faltan=1; }
+          [ "$faltan" -eq 0 ] || exit 1
+          echo "Credenciales presentes"
+
       - uses: actions/checkout@v4
 
       - uses: hashicorp/setup-terraform@v3
@@ -98,6 +107,15 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_APPLY_AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_APPLY_AWS_SECRET_ACCESS_KEY }}
     steps:
+      - name: Validar credenciales
+        working-directory: .
+        run: |
+          faltan=0
+          [ -n "$AWS_ACCESS_KEY_ID" ]     || { echo "::error::Falta el secret TF_APPLY_AWS_ACCESS_KEY_ID (pestaña Secrets)"; faltan=1; }
+          [ -n "$AWS_SECRET_ACCESS_KEY" ] || { echo "::error::Falta el secret TF_APPLY_AWS_SECRET_ACCESS_KEY (pestaña Secrets)"; faltan=1; }
+          [ "$faltan" -eq 0 ] || exit 1
+          echo "Credenciales presentes"
+
       - uses: actions/checkout@v4
 
       - uses: hashicorp/setup-terraform@v3
