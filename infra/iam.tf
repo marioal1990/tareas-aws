@@ -36,7 +36,7 @@ resource "aws_iam_role_policy" "backend_rds_connect" {
     Statement = [{
       Effect   = "Allow"
       Action   = "rds-db:connect"
-      Resource = "arn:aws:rds-db:${var.region}:${local.account_id}:dbuser:${local.aurora_cluster_resource_id}/tareas_app"
+      Resource = "arn:aws:rds-db:${var.region}:${local.account_id}:dbuser:${aws_rds_cluster.tareas.cluster_resource_id}/tareas_app"
     }]
   })
 }

@@ -32,3 +32,8 @@ output "cloudfront_distribution_id" {
   description = "ID de la distribución (variable CF_DIST_ID de GitHub)"
   value       = aws_cloudfront_distribution.app.id
 }
+
+output "aurora_endpoint" {
+  description = "Endpoint de Aurora (variable DB_HOST del backend)"
+  value       = aws_rds_cluster.tareas.endpoint
+}

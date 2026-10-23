@@ -66,3 +66,4 @@ desktop.ini
 .terraform/
 crash.log
 generated.tf*
+plan-*.txt
