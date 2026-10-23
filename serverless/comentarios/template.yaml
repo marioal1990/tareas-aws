@@ -87,6 +87,35 @@ Resources:
       LogGroupName: /aws/lambda/tareas-comentarios
       RetentionInDays: 7                          # no acumular logs para siempre
 
+  LimpiezaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: tareas-comentarios-limpieza
+      CodeUri: function/
+      Handler: cl.mario.comentarios.LimpiezaHandler::handleRequest
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ComentariosTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ComentariosTable
+      Events:
+        TareaEliminada:
+          Type: EventBridgeRule
+          Properties:
+            Pattern: # solo recibe estos eventos
+              source: [ tareas-db ]
+              detail-type: [ TareaEliminada ]
+            RetryPolicy:
+              MaximumRetryAttempts: 5
+              MaximumEventAgeInSeconds: 3600
+
+    LimpiezaLogs:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/tareas-comentarios-limpieza
+        RetentionInDays: 7
+
 Outputs:
   ApiUrl:
     Value: !Sub "https://${ComentariosApi}.execute-api.${AWS::Region}.amazonaws.com"

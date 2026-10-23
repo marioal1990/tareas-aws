@@ -1,5 +1,6 @@
 package cl.mario.comentarios.util;
 
+import cl.mario.comentarios.model.Comentario;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -31,6 +32,15 @@ public class ParseUtil {
         } catch (Exception e) {
             return APIGatewayV2HTTPResponse.builder().withStatusCode(500).build();
         }
+    }
+
+    public static Comentario aComentario(Map<String, AttributeValue> item) {
+        return new Comentario(
+                Long.parseLong(item.get(ConstantsUtil.TAREA_ID).n()),
+                ParseUtil.texto(item, ConstantsUtil.COMENTARIO_ID, ""),
+                ParseUtil.texto(item, ConstantsUtil.TEXTO, ""),
+                ParseUtil.texto(item, ConstantsUtil.CREADO_EN, ""),
+                ParseUtil.texto(item, ConstantsUtil.USUARIO, "anónimo"));
     }
 
     /** Lee un atributo String; si el item no lo tiene, devuelve el valor por defecto. */

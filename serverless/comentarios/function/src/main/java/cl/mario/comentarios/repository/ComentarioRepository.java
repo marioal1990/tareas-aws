@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -35,7 +36,7 @@ public class ComentarioRepository {
                 .scanIndexForward(false)   // más recientes primero
                 .limit(50)
                 .build());
-        return resp.items().stream().map(this::aComentario).toList();
+        return resp.items().stream().map(ParseUtil::aComentario).toList();
     }
 
     public Comentario crear(long tareaId, String texto, String autor) {
@@ -67,12 +68,46 @@ public class ComentarioRepository {
         return resp.hasAttributes() && !resp.attributes().isEmpty();
     }
 
-    private Comentario aComentario(Map<String, AttributeValue> item) {
-        return new Comentario(
-                Long.parseLong(item.get(ConstantsUtil.TAREA_ID).n()),
-                ParseUtil.texto(item, ConstantsUtil.COMENTARIO_ID, ""),
-                ParseUtil.texto(item, ConstantsUtil.TEXTO, ""),
-                ParseUtil.texto(item, ConstantsUtil.CREADO_EN, ""),
-                ParseUtil.texto(item, ConstantsUtil.USUARIO, "anónimo"));
+    /** Borra todos los comentarios de una tarea. Devuelve cuántos borró. */
+    public int borrarTodos(long tareaId) {
+        // Solo pedimos las llaves: no necesitamos el texto para borrar
+        var paginas = dynamo.queryPaginator(QueryRequest.builder()
+                .tableName(tabla)
+                .keyConditionExpression("tareaId = :t")
+                .expressionAttributeValues(Map.of(":t", AttributeValue.fromN(String.valueOf(tareaId))))
+                .projectionExpression("tareaId, comentarioId")
+                .build());
+
+        List<WriteRequest> lote = new ArrayList<>();
+        int total = 0;
+        for (Map<String, AttributeValue> llave : paginas.items()) {   // recorre todas las páginas
+            lote.add(WriteRequest.builder()
+                    .deleteRequest(DeleteRequest.builder().key(llave).build())
+                    .build());
+            if (lote.size() == 25) {
+                total += borrarLote(lote);
+                lote = new ArrayList<>();
+            }
+        }
+        if (!lote.isEmpty()) total += borrarLote(lote);
+        return total;
+    }
+
+    private int borrarLote(List<WriteRequest> lote) {
+        Map<String, List<WriteRequest>> pendientes = Map.of(tabla, lote);
+        // DynamoDB puede devolver items "no procesados" si está bajo carga: se reintentan con espera creciente
+        for (int intento = 0; !pendientes.isEmpty() && intento < 5; intento++) {
+            BatchWriteItemResponse resp = dynamo.batchWriteItem(BatchWriteItemRequest.builder()
+                    .requestItems(pendientes).build());
+            pendientes = resp.unprocessedItems();
+            if (!pendientes.isEmpty()) {
+                try { Thread.sleep(100L << intento); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            }
+        }
+        if (!pendientes.isEmpty()) {
+            // Al lanzar la excepción, EventBridge reintentará el evento completo
+            throw new IllegalStateException("No se pudieron borrar todos los comentarios");
+        }
+        return lote.size();
     }
 }
