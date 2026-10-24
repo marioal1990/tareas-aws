@@ -8,28 +8,33 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface TareaRepository extends JpaRepository<Tarea, Long> {
 
     @Query("""
             SELECT new cl.backend.tareas_db.model.dto.TareaDTO(t.id, t.titulo, t.completada, t.creadaEn)
             FROM Tarea t
+            WHERE t.usuarioId = :usuarioId
             """)
-    Slice<TareaDTO> findAllDto(Pageable pageable);
+    Slice<TareaDTO> findAllDto(String usuarioId, Pageable pageable);
 
     @Query("""
             SELECT new cl.backend.tareas_db.model.dto.TareaDTO(t.id, t.titulo, t.completada, t.creadaEn)
             FROM Tarea t
-            WHERE t.titulo = :titulo
+            WHERE t.usuarioId = :usuarioId AND t.titulo = :titulo
             """)
-    Slice<TareaDTO> findByTitulo(String titulo, Pageable pageable);
+    Slice<TareaDTO> findByTitulo(String usuarioId, String titulo, Pageable pageable);
 
     @Query("""
             SELECT new cl.backend.tareas_db.model.dto.TareaDTO(t.id, t.titulo, t.completada, t.creadaEn)
             FROM Tarea t
-            WHERE t.completada = :completada
+            WHERE t.usuarioId = :usuarioId AND t.completada = :completada
             """)
-    Slice<TareaDTO> findByCompletada(boolean completada, Pageable pageable);
+    Slice<TareaDTO> findByCompletada(String usuarioId, boolean completada, Pageable pageable);
 
-    boolean existsByTitulo(String titulo);
+    Optional<Tarea> findByIdAndUsuarioId(Long id, String usuarioId);
+
+    boolean existsByUsuarioIdAndTitulo(String usuarioId, String titulo);
 }

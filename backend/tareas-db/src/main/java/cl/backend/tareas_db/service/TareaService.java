@@ -15,6 +15,10 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Todas las operaciones reciben el usuarioId (sub de Cognito) y solo tocan tareas de ese usuario.
+ * Si la tarea es de otro usuario se responde 404 (no 403) para no revelar que existe.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -25,48 +29,51 @@ public class TareaService {
     private final ApplicationEventPublisher eventos;
 
     @Transactional(readOnly = true)
-    public Slice<TareaDTO> findAll(Pageable pageable) {
-        return this.repo.findAllDto(pageable);
+    public Slice<TareaDTO> findAll(String usuarioId, Pageable pageable) {
+        return this.repo.findAllDto(usuarioId, pageable);
     }
 
     @Transactional(readOnly = true)
-    public Slice<TareaDTO> findByTitulo(String titulo, Pageable pageable) {
-        return this.repo.findByTitulo(titulo, pageable);
+    public Slice<TareaDTO> findByTitulo(String usuarioId, String titulo, Pageable pageable) {
+        return this.repo.findByTitulo(usuarioId, titulo, pageable);
     }
 
     @Transactional(readOnly = true)
-    public Slice<TareaDTO> findByCompletada(boolean completada, Pageable pageable) {
-        return this.repo.findByCompletada(completada, pageable);
+    public Slice<TareaDTO> findByCompletada(String usuarioId, boolean completada, Pageable pageable) {
+        return this.repo.findByCompletada(usuarioId, completada, pageable);
     }
 
     @Transactional(readOnly = true)
-    public TareaDTO findById(Long id) {
-        Tarea tarea = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("ID", id));
-        return ParseoUtil.parseoTareaDTO(tarea);
+    public TareaDTO findById(String usuarioId, Long id) {
+        return ParseoUtil.parseoTareaDTO(buscarPropia(usuarioId, id));
     }
 
     @Transactional
-    public TareaDTO save(TareaDTO tareaDTO) {
-        if (this.repo.existsByTitulo(tareaDTO.titulo())) {
+    public TareaDTO save(String usuarioId, TareaDTO tareaDTO) {
+        if (this.repo.existsByUsuarioIdAndTitulo(usuarioId, tareaDTO.titulo())) {
             throw new DuplicateResourceException("El titulo de la tarea ya existe");
         }
-        Tarea tarea = this.repo.save(ParseoUtil.parseoTarea(tareaDTO));
-        return ParseoUtil.parseoTareaDTO(tarea);
+        Tarea tarea = ParseoUtil.parseoTarea(tareaDTO);
+        tarea.setId(null);              // el ID siempre lo genera la BD
+        tarea.setUsuarioId(usuarioId);  // el dueño sale del token, nunca del body
+        return ParseoUtil.parseoTareaDTO(this.repo.save(tarea));
     }
 
     @Transactional
-    public TareaDTO cambiarCompletada(Long id, boolean completada) {
-        Tarea tarea = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
+    public TareaDTO cambiarCompletada(String usuarioId, Long id, boolean completada) {
+        Tarea tarea = buscarPropia(usuarioId, id);
         tarea.setCompletada(completada);
         return ParseoUtil.parseoTareaDTO(tarea);   // JPA guarda el cambio al cerrar la transacción
     }
 
     @Transactional
-    public void delete(Long id) {
-        if (!repo.existsById(id)) {
-            throw new ResourceNotFoundException("Tarea", id);
-        }
-        repo.deleteById(id);
+    public void delete(String usuarioId, Long id) {
+        repo.delete(buscarPropia(usuarioId, id));
         eventos.publishEvent(new TareaEliminadaEvent(id));
+    }
+
+    private Tarea buscarPropia(String usuarioId, Long id) {
+        return repo.findByIdAndUsuarioId(id, usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
     }
 }

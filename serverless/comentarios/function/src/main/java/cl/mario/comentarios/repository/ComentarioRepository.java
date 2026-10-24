@@ -28,18 +28,22 @@ public class ComentarioRepository {
         this.tabla = System.getenv("TABLE_NAME");
     }
 
-    public List<Comentario> listar(long tareaId) {
+    /** Lista los comentarios de la tarea que pertenecen al usuario (sub de Cognito). */
+    public List<Comentario> listar(long tareaId, String usuarioId) {
         QueryResponse resp = dynamo.query(QueryRequest.builder()
                 .tableName(tabla)
                 .keyConditionExpression("tareaId = :t")
-                .expressionAttributeValues(Map.of(":t", AttributeValue.fromN(String.valueOf(tareaId))))
+                .filterExpression("usuarioId = :u")   // se aplica después de leer: no ahorra lecturas
+                .expressionAttributeValues(Map.of(
+                        ":t", AttributeValue.fromN(String.valueOf(tareaId)),
+                        ":u", AttributeValue.fromS(usuarioId)))
                 .scanIndexForward(false)   // más recientes primero
                 .limit(50)
                 .build());
         return resp.items().stream().map(ParseUtil::aComentario).toList();
     }
 
-    public Comentario crear(long tareaId, String texto, String autor) {
+    public Comentario crear(long tareaId, String texto, String autor, String usuarioId) {
         Instant ahora = Instant.now();
         // ID ordenable por fecha y seguro para URLs: 0001792...-a1b2c3d4
         String id = String.format("%013d-%s", ahora.toEpochMilli(), UUID.randomUUID().toString().substring(0, 8));
@@ -52,20 +56,28 @@ public class ComentarioRepository {
                         ConstantsUtil.COMENTARIO_ID, AttributeValue.fromS(c.comentarioId()),
                         ConstantsUtil.TEXTO, AttributeValue.fromS(c.texto()),
                         ConstantsUtil.CREADO_EN, AttributeValue.fromS(c.creadoEn()),
-                        ConstantsUtil.USUARIO, AttributeValue.fromS(c.autor())))
+                        ConstantsUtil.USUARIO, AttributeValue.fromS(c.autor()),
+                        ConstantsUtil.USUARIO_ID, AttributeValue.fromS(usuarioId)))
                 .build());
         return c;
     }
 
-    public boolean borrar(long tareaId, String comentarioId) {
-        DeleteItemResponse resp = dynamo.deleteItem(DeleteItemRequest.builder()
-                .tableName(tabla)
-                .key(Map.of(
-                        ConstantsUtil.TAREA_ID, AttributeValue.fromN(String.valueOf(tareaId)),
-                        ConstantsUtil.COMENTARIO_ID, AttributeValue.fromS(comentarioId)))
-                .returnValues(ReturnValue.ALL_OLD)   // para saber si existía
-                .build());
-        return resp.hasAttributes() && !resp.attributes().isEmpty();
+    /** Borra el comentario solo si es del usuario. false si no existe o es de otro. */
+    public boolean borrar(long tareaId, String comentarioId, String usuarioId) {
+        try {
+            dynamo.deleteItem(DeleteItemRequest.builder()
+                    .tableName(tabla)
+                    .key(Map.of(
+                            ConstantsUtil.TAREA_ID, AttributeValue.fromN(String.valueOf(tareaId)),
+                            ConstantsUtil.COMENTARIO_ID, AttributeValue.fromS(comentarioId)))
+                    // Falla si el item no existe o si su dueño es otro: ambos casos son 404
+                    .conditionExpression("usuarioId = :u")
+                    .expressionAttributeValues(Map.of(":u", AttributeValue.fromS(usuarioId)))
+                    .build());
+            return true;
+        } catch (ConditionalCheckFailedException e) {
+            return false;
+        }
     }
 
     /** Borra todos los comentarios de una tarea. Devuelve cuántos borró. */

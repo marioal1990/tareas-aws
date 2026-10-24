@@ -13,4 +13,5 @@ public class ConstantsUtil {
     public static final String TEXTO = "texto";
     public static final String CREADO_EN = "creadoEn";
     public static final String USUARIO = "usuario";
+    public static final String USUARIO_ID = "usuarioId";   // sub de Cognito del autor
 }

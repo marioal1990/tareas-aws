@@ -35,4 +35,9 @@ public class Tarea {
     @Column(name = "creada_en", insertable = false, updatable = false)
     @Schema(description = "Fecha de creación", accessMode = Schema.AccessMode.READ_ONLY)
     private OffsetDateTime creadaEn;
+
+    // Dueño de la tarea (sub de Cognito). No se expone en la API.
+    @Column(name = "usuario_id", nullable = false, updatable = false, length = 64)
+    @Schema(hidden = true)
+    private String usuarioId;
 }

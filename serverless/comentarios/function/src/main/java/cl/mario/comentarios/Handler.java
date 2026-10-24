@@ -34,7 +34,7 @@ public class Handler implements RequestHandler<APIGatewayV2HTTPEvent, APIGateway
         try {
             // Consulta real a DynamoDB con una tarea que no existe: carga el SDK,
             // la firma de peticiones y la conexión TLS, sin modificar datos
-            repo.listar(-1L);
+            repo.listar(-1L, "priming");
             // Carga y "calienta" Jackson
             ParseUtil.respuesta(200, "OK", List.of(new Comentario(0, "x", "x", "x", "x")));
         } catch (Exception e) {
@@ -54,10 +54,17 @@ public class Handler implements RequestHandler<APIGatewayV2HTTPEvent, APIGateway
             Map<String, String> params = event.getPathParameters();
             long tareaId = Long.parseLong(params.get(ConstantsUtil.TAREA_ID));
 
+            // API Gateway ya validó el JWT; el "sub" identifica al usuario de forma única e inmutable
+            Map<String, String> claims = event.getRequestContext().getAuthorizer().getJwt().getClaims();
+            String usuarioId = claims.get("sub");
+            if (usuarioId == null || usuarioId.isEmpty()) {
+                return ParseUtil.respuesta(401, "No se pudo identificar al usuario", null);
+            }
+
             return switch (ruta) {
-                case "GET " + BASE -> ParseUtil.respuesta(200, "OK", repo.listar(tareaId));
-                case "POST " + BASE -> crear(tareaId, event);
-                case "DELETE " + BASE + "/{comentarioId}" -> repo.borrar(tareaId, params.get(ConstantsUtil.COMENTARIO_ID))
+                case "GET " + BASE -> ParseUtil.respuesta(200, "OK", repo.listar(tareaId, usuarioId));
+                case "POST " + BASE -> crear(tareaId, event, claims, usuarioId);
+                case "DELETE " + BASE + "/{comentarioId}" -> repo.borrar(tareaId, params.get(ConstantsUtil.COMENTARIO_ID), usuarioId)
                         ? ParseUtil.respuesta(204, null, null)
                         : ParseUtil.respuesta(404, "Comentario no encontrado", null);
                 default -> ParseUtil.respuesta(404, "Ruta no encontrada", null);
@@ -70,7 +77,8 @@ public class Handler implements RequestHandler<APIGatewayV2HTTPEvent, APIGateway
         }
     }
 
-    private APIGatewayV2HTTPResponse crear(long tareaId, APIGatewayV2HTTPEvent event) throws Exception {
+    private APIGatewayV2HTTPResponse crear(long tareaId, APIGatewayV2HTTPEvent event,
+                                           Map<String, String> claims, String usuarioId) throws Exception {
         String body = event.getBody();
         if (body != null && event.getIsBase64Encoded()) {
             body = new String(Base64.getDecoder().decode(body), StandardCharsets.UTF_8);
@@ -81,10 +89,7 @@ public class Handler implements RequestHandler<APIGatewayV2HTTPEvent, APIGateway
         if (texto.isEmpty()) return ParseUtil.respuesta(400, "El texto es obligatorio", null);
         if (texto.length() > 500) return ParseUtil.respuesta(400, "El texto no puede superar 500 caracteres", null);
 
-        Map<String, String> claims = event.getRequestContext().getAuthorizer().getJwt().getClaims();
-        String autor = claims.getOrDefault("username", "anónimo");
-        if (autor.isEmpty()) return ParseUtil.respuesta(401, "No se pudo identificar al usuario", null);
-
-        return ParseUtil.respuesta(201, "Comentario creado", repo.crear(tareaId, texto, autor));
+        String autor = claims.getOrDefault("username", "anónimo");   // solo para mostrar
+        return ParseUtil.respuesta(201, "Comentario creado", repo.crear(tareaId, texto, autor, usuarioId));
     }
 }
