@@ -37,3 +37,8 @@ output "aurora_endpoint" {
   description = "Endpoint de Aurora (variable DB_HOST del backend)"
   value       = aws_rds_cluster.tareas.endpoint
 }
+
+output "ecr_backend_url" {
+  description = "Repositorio ECR de la imagen del backend"
+  value       = aws_ecr_repository.backend.repository_url
+}
