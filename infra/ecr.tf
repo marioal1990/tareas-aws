@@ -52,10 +52,12 @@ resource "aws_iam_role_policy" "backend_ecr_pull" {
   })
 }
 
-# GitHub Actions sube (push) las imágenes
-resource "aws_iam_user_policy" "github_ecr_push" {
-  name = "ecr-push"
-  user = aws_iam_user.github_deploy.name
+# GitHub Actions sube (push) las imágenes.
+# Es una política administrada (no inline): las inline de un usuario suman
+# máximo 2048 bytes y github-deploy ya está cerca del límite
+resource "aws_iam_policy" "github_ecr_push" {
+  name        = "github-deploy-ecr-push"
+  description = "Subir imagenes del backend a ECR desde GitHub Actions"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -74,4 +76,9 @@ resource "aws_iam_user_policy" "github_ecr_push" {
       },
     ]
   })
+}
+
+resource "aws_iam_user_policy_attachment" "github_ecr_push" {
+  user       = aws_iam_user.github_deploy.name
+  policy_arn = aws_iam_policy.github_ecr_push.arn
 }
