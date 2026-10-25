@@ -15,6 +15,8 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
+    private static final String BEARER = "bearer";
+
     @Bean
     public OpenAPI tareasOpenAPI() {
         return new OpenAPI()
@@ -25,8 +27,8 @@ public class OpenApiConfig {
                 .contact(new Contact().name("Mario Araya Lecaros")))
                 .servers(List.of(new Server().url("/tareas-db").description("Mismo dominio")))
                 // OAUTH 2
-                .components(new Components().addSecuritySchemes("bearer",
-                        new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
-                .addSecurityItem(new SecurityRequirement().addList("bearer"));
+                .components(new Components().addSecuritySchemes(BEARER,
+                        new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme(BEARER).bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList(BEARER));
     }
 }
