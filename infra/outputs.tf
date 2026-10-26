@@ -42,3 +42,8 @@ output "ecr_backend_url" {
   description = "Repositorio ECR de la imagen del backend"
   value       = aws_ecr_repository.backend.repository_url
 }
+
+output "dashboard_url" {
+  description = "Dashboard de CloudWatch del proyecto"
+  value       = "https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#dashboards/dashboard/${aws_cloudwatch_dashboard.tareas.dashboard_name}"
+}

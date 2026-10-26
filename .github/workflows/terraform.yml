@@ -29,6 +29,8 @@ env:
   TF_IN_AUTOMATION: 'true'
   AWS_REGION: us-east-2
   TF_VERSION: 1.16.6
+  # Variables de Terraform (TF_VAR_<nombre>): no son secretos, van en la pestaña Variables de GitHub
+  TF_VAR_email_alertas: ${{ vars.ALERTAS_EMAIL }}
 
 jobs:
   plan:
