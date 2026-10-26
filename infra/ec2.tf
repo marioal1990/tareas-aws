@@ -101,7 +101,7 @@ resource "aws_instance" "backend" {
   }
 
   lifecycle {
-    # Recrear la instancia borraría Java, el servicio systemd, app.env y deploy.sh
+    # Recrear la instancia borraría Docker y /opt/tareas-db/app.env (variables del contenedor)
     prevent_destroy = true
     # Una AMI nueva no debe provocar el reemplazo de una instancia ya configurada
     ignore_changes = [ami, user_data]

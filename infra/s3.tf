@@ -1,5 +1,6 @@
 # ============================================================
-# S3: frontend (Angular) y artefactos del backend (JAR)
+# S3: frontend (Angular)
+# (el bucket de JAR se eliminó en la Fase 3: el backend ahora se despliega como imagen en ECR)
 # ============================================================
 
 # ---------- Frontend: privado, solo CloudFront puede leerlo (OAC) ----------
@@ -36,39 +37,4 @@ resource "aws_s3_bucket_policy" "frontend" {
       }
     }]
   })
-}
-
-# ---------- Artefactos: JAR del backend que despliega el pipeline ----------
-resource "aws_s3_bucket" "artifacts" {
-  bucket              = "tareas-artifacts-mario-2026"
-  bucket_namespace    = "global"
-  force_destroy       = false
-  object_lock_enabled = false
-}
-
-resource "aws_s3_bucket_public_access_block" "artifacts" {
-  bucket                  = aws_s3_bucket.artifacts.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "artifacts" {
-  bucket                                 = aws_s3_bucket.artifacts.id
-  transition_default_minimum_object_size = "all_storage_classes_128K"
-
-  rule {
-    id     = "expirar-jars"
-    status = "Enabled"
-
-    filter {
-      prefix = "backend/"
-    }
-
-    # Los JAR con más de 30 días se borran solos (ahorra almacenamiento)
-    expiration {
-      days = 30
-    }
-  }
 }

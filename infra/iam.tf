@@ -41,20 +41,6 @@ resource "aws_iam_role_policy" "backend_rds_connect" {
   })
 }
 
-# Descargar los JAR que sube el pipeline
-resource "aws_iam_role_policy" "backend_artifacts_read" {
-  name = "artifacts-read"
-  role = aws_iam_role.backend_ec2.name
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = "s3:GetObject"
-      Resource = "${aws_s3_bucket.artifacts.arn}/backend/*"
-    }]
-  })
-}
-
 # Publicar el evento TareaEliminada en EventBridge
 resource "aws_iam_role_policy" "backend_publicar_eventos" {
   name = "publicar-eventos"
@@ -190,18 +176,13 @@ resource "aws_iam_user_policy" "github_frontend" {
   })
 }
 
-# Pipeline del backend: subir el JAR y desplegar vía SSM
+# Pipeline del backend: desplegar vía SSM (la imagen se sube a ECR, ver ecr.tf)
 resource "aws_iam_user_policy" "github_backend" {
   name = "deploy-backend"
   user = aws_iam_user.github_deploy.name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Effect   = "Allow"
-        Action   = "s3:PutObject"
-        Resource = "${aws_s3_bucket.artifacts.arn}/backend/*"
-      },
       {
         Effect = "Allow"
         Action = "ssm:SendCommand"
