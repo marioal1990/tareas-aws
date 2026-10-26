@@ -44,7 +44,7 @@ for s in $SERVICIOS; do
 done
 echo "Versión anterior: $ANTERIOR"
 
-# 5) Levantar la nueva versión
+# 5) Levantar la nueva versión (los logs van a CloudWatch; "docker logs" sigue funcionando)
 docker run -d --name "$NOMBRE" \
   --restart unless-stopped \
   -p 8888:8888 \
@@ -52,7 +52,10 @@ docker run -d --name "$NOMBRE" \
   --env-file "$DIR/docker.env" \
   -e SPRING_PROFILES_ACTIVE=aws \
   -e AWS_REGION="$REGION" \
-  --log-opt max-size=10m --log-opt max-file=3 \
+  --log-driver awslogs \
+  --log-opt awslogs-region="$REGION" \
+  --log-opt awslogs-group=/tareas/backend \
+  --log-opt awslogs-stream="$NOMBRE-${IMAGEN##*:}-$(date +%Y%m%d%H%M%S)" \
   "$IMAGEN" >/dev/null
 
 # 6) Esperar a que responda el health (Aurora puede tardar en despertar)
