@@ -11,6 +11,7 @@ permissions:
 
 env:
   APP_DIR: backend/tareas-db
+  ECR_REPO: tareas-db
 
 jobs:
   test:
@@ -42,42 +43,25 @@ jobs:
           java-version: 21
           cache: maven
 
-      - name: Tests y empaquetado
+      - name: Tests
         working-directory: ${{ env.APP_DIR }}
         run: ./mvnw -B verify
 
-      - name: Guardar JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar
-          path: ${{ env.APP_DIR }}/target/tareas-db-*.jar
-          retention-days: 7
-
-  deploy:
-    name: Deploy a EC2
+  imagen:
+    name: Imagen Docker a ECR
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      imagen: ${{ steps.datos.outputs.imagen }}
     steps:
-      - name: Validar configuración
+      - uses: actions/checkout@v4
+
+      - name: Validar credenciales
         env:
-          BUCKET: ${{ vars.ARTIFACTS_BUCKET }}
-          INSTANCE: ${{ vars.EC2_INSTANCE_ID }}
-          CF: ${{ vars.CF_DOMAIN }}
           KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          faltan=0
-          [ -n "$BUCKET" ]   || { echo "::error::Falta la variable ARTIFACTS_BUCKET"; faltan=1; }
-          [ -n "$INSTANCE" ] || { echo "::error::Falta la variable EC2_INSTANCE_ID"; faltan=1; }
-          [ -n "$CF" ]       || { echo "::error::Falta la variable CF_DOMAIN"; faltan=1; }
-          [ -n "$KEY_ID" ]   || { echo "::error::Falta el secret AWS_ACCESS_KEY_ID"; faltan=1; }
-          [ -n "$SECRET" ]   || { echo "::error::Falta el secret AWS_SECRET_ACCESS_KEY"; faltan=1; }
-          [ "$faltan" -eq 0 ] || exit 1
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: backend-jar
-          path: jar
+          [ -n "$KEY_ID" ] && [ -n "$SECRET" ] || { echo "::error::Faltan los secrets AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY"; exit 1; }
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -85,27 +69,81 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
-      - name: Subir JAR a S3
-        id: upload
-        run: |
-          KEY="backend/tareas-db-${GITHUB_SHA::7}.jar"
-          aws s3 cp jar/*.jar "s3://${{ vars.ARTIFACTS_BUCKET }}/$KEY"
-          echo "uri=s3://${{ vars.ARTIFACTS_BUCKET }}/$KEY" >> "$GITHUB_OUTPUT"
+      - name: Login en ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Desplegar en EC2 vía SSM
+      - name: Nombre de la imagen
+        id: datos
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "imagen=${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:$TAG" >> "$GITHUB_OUTPUT"
+          # Los tags son inmutables: si este commit ya tiene imagen (re-ejecución), no se vuelve a construir
+          if aws ecr describe-images --repository-name "${{ env.ECR_REPO }}" --image-ids imageTag="$TAG" >/dev/null 2>&1; then
+            echo "existe=true" >> "$GITHUB_OUTPUT"
+            echo "La imagen $TAG ya existe en ECR"
+          fi
+
+      # QEMU + Buildx: construir una imagen arm64 (la EC2 es Graviton) desde un runner amd64
+      - uses: docker/setup-qemu-action@v3
+        if: steps.datos.outputs.existe != 'true'
+      - uses: docker/setup-buildx-action@v3
+        if: steps.datos.outputs.existe != 'true'
+
+      - name: Construir y subir
+        if: steps.datos.outputs.existe != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.APP_DIR }}
+          platforms: linux/arm64
+          push: true
+          provenance: false        # evita un manifiesto extra en ECR
+          tags: ${{ steps.datos.outputs.imagen }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy a EC2
+    needs: imagen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar configuración
         env:
           INSTANCE: ${{ vars.EC2_INSTANCE_ID }}
-          URI: ${{ steps.upload.outputs.uri }}
+          CF: ${{ vars.CF_DOMAIN }}
         run: |
+          faltan=0
+          [ -n "$INSTANCE" ] || { echo "::error::Falta la variable EC2_INSTANCE_ID"; faltan=1; }
+          [ -n "$CF" ]       || { echo "::error::Falta la variable CF_DOMAIN"; faltan=1; }
+          [ "$faltan" -eq 0 ] || exit 1
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Desplegar contenedor en EC2 vía SSM
+        env:
+          INSTANCE: ${{ vars.EC2_INSTANCE_ID }}
+          IMAGEN: ${{ needs.imagen.outputs.imagen }}
+        run: |
+          # El script se envía completo: la EC2 no necesita tener nada preinstalado
+          sed "s|__IMAGEN__|$IMAGEN|" "$APP_DIR/deploy/deploy-contenedor.sh" \
+            | jq -Rs '{commands: [.], executionTimeout: ["600"]}' > params.json
+
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name AWS-RunShellScript \
-            --comment "Deploy ${GITHUB_SHA::7}" \
-            --parameters "commands=[\"/opt/tareas-db/deploy.sh $URI\"]" \
+            --comment "Deploy contenedor ${GITHUB_SHA::7}" \
+            --parameters file://params.json \
             --query "Command.CommandId" --output text)
           echo "Comando SSM: $CMD_ID"
 
-          for i in $(seq 1 60); do
+          for i in $(seq 1 120); do
             STATUS=$(aws ssm get-command-invocation --command-id "$CMD_ID" \
               --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
             case "$STATUS" in
