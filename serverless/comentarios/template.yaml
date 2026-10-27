@@ -26,9 +26,13 @@ Globals:
 Resources:
   ComentariosTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain          # si se borra el stack, la tabla (y los comentarios) se conservan
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: tareas-comentarios
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true   # respaldo continuo: restaurar a cualquier segundo de los últimos 35 días
       AttributeDefinitions:
         - { AttributeName: tareaId, AttributeType: N }
         - { AttributeName: comentarioId, AttributeType: S }
