@@ -14,6 +14,8 @@ Aplicación full stack de gestión de tareas con comentarios, desplegada en AWS.
 
 **URL:** https://d1tqw0yq09gni5.cloudfront.net
 
+**Arquitectura detallada (modelo C4):** [docs/arquitectura](docs/arquitectura/README.md): contexto, contenedores, componentes, despliegue y flujos paso a paso.
+
 ---
 
 ## Índice
